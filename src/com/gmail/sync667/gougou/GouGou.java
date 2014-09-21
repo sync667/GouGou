@@ -73,8 +73,8 @@ public class GouGou extends Canvas implements Runnable {
 
         screen = new Screen(WIDTH, HEIGHT, new SpriteSheet("/Sprite.png"));
         input = new InputHandler(this);
-        level = new Level(64, 64);
-        player = new Player(level, 0, 0, input);
+        level = new Level("/levels/level1.png");
+        player = new Player(level, 80, 100, input);
 
         level.addEntity(player);
     }

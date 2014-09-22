@@ -21,6 +21,7 @@
     </properties>
 
     <build>
+        <finalName>$\{project.artifactId}-$\{project.version}-r$\{buildNumber}</finalName>
             <defaultGoal>install</defaultGoal>
     		<sourceDirectory>${basedir}/src/</sourceDirectory>
     <resources>

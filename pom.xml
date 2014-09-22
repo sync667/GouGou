@@ -21,7 +21,8 @@
     </properties>
 
     <build>
-        <finalName>$\{project.artifactId}-$\{project.version}-r$\{buildNumber}</finalName>
+        <directory>${project.basedir}/target</directory>
+        <finalName>${project.artifactId}-${project.version}-${buildNumber}</finalName>
             <defaultGoal>install</defaultGoal>
     		<sourceDirectory>${basedir}/src/</sourceDirectory>
     <resources>
@@ -41,6 +42,7 @@
             <plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.5.1</version>
 				<configuration>
 					<archive>
 						<manifest>

@@ -9,6 +9,8 @@ public class Player extends Mob {
 
     private final InputHandler input;
     private final int colour = Colours.get(-1, 111, 145, 543);
+    protected boolean isSwimming = false;
+    private int tickCount = 0;
     public int scale = 1;
 
     public Player(Level level, int x, int y, InputHandler input) {
@@ -41,6 +43,15 @@ public class Player extends Mob {
             isMoving = false;
         }
 
+        if (level.getTile(this.x >> 3, this.y >> 3).getId() == 3) {
+            isSwimming = true;
+        }
+        if (isSwimming && level.getTile(this.x >> 3, this.y >> 3).getId() != 3) {
+            isSwimming = false;
+        }
+
+        tickCount++;
+
         this.scale = 1;
     }
 
@@ -63,13 +74,33 @@ public class Player extends Mob {
         int xOffset = x - modifier / 2;
         int yOffset = y - modifier / 2 - 4;
 
+        if (isSwimming) {
+            int waterColour = 0;
+            yOffset += 4;
+            if (tickCount % 60 < 15) {
+                waterColour = Colours.get(-1, -1, 225, -1);
+            } else if (15 < -tickCount % 60 && tickCount % 60 < 30) {
+                yOffset -= 1;
+                waterColour = Colours.get(-1, 255, 115, -1);
+            } else if (30 <= tickCount % 60 && tickCount % 60 < 45) {
+                waterColour = Colours.get(-1, 115, -1, 225);
+            } else {
+                yOffset -= 1;
+                waterColour = Colours.get(-1, 225, 115, -1);
+            }
+            screen.render(xOffset, yOffset + 3, 0 + 27 * 32, waterColour, 0x00, 1);
+            screen.render(xOffset + 8, yOffset + 3, 0 + 27 * 32, waterColour, 0x01, 1);
+        }
+
         screen.render(xOffset + (modifier * flipTop), yOffset, xTile + yTile * 32, colour, flipTop, scale);
         screen.render(xOffset + modifier - (modifier * flipTop), yOffset, xTile + 1 + yTile * 32, colour, flipTop,
                 scale);
-        screen.render(xOffset + (modifier * flipBottom), yOffset + modifier, xTile + (yTile + 1) * 32, colour,
-                flipBottom, scale);
-        screen.render(xOffset + modifier - (modifier * flipBottom), yOffset + modifier, (xTile + 1) + (yTile + 1) * 32,
-                colour, flipBottom, scale);
+        if (!isSwimming) {
+            screen.render(xOffset + (modifier * flipBottom), yOffset + modifier, xTile + (yTile + 1) * 32, colour,
+                    flipBottom, scale);
+            screen.render(xOffset + modifier - (modifier * flipBottom), yOffset + modifier, (xTile + 1) + (yTile + 1)
+                    * 32, colour, flipBottom, scale);
+        }
     }
 
     @Override

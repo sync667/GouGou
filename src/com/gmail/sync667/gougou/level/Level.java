@@ -121,6 +121,13 @@ public class Level {
         for (Entity e : entities) {
             e.render(screen);
         }
+
+        for (Tile t : Tile.tiles) {
+            if (t == null) {
+                break;
+            }
+            t.tick();
+        }
     }
 
     public Tile getTile(int x, int y) {

@@ -4,7 +4,7 @@
 
     <groupId>com.gmail.sync667</groupId>
     <artifactId>GouGou</artifactId>
-    <version>ALPHA-0.0.1</version>
+    <version>ALPHA-0.1-B:1</version>
     <packaging>jar</packaging>
 
     <name>GouGou</name>
@@ -22,7 +22,7 @@
 
     <build>
         <directory>${project.basedir}/target</directory>
-        <finalName>${project.artifactId}-${project.version}-${buildNumber}</finalName>
+        <finalName>${project.artifactId}-${project.version}</finalName>
             <defaultGoal>install</defaultGoal>
     		<sourceDirectory>${basedir}/src/</sourceDirectory>
     <resources>

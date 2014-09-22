@@ -4,7 +4,7 @@
 
     <groupId>com.gmail.sync667</groupId>
     <artifactId>GouGou</artifactId>
-    <version>1</version>
+    <version>{buildNumber}</version>
     <packaging>jar</packaging>
 
     <name>GouGou</name>
@@ -20,7 +20,7 @@
     </developers>
 
     <properties>
-        <build.number>unknown</build.number>
+        <build.number>{buildNumber}</build.number>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -28,6 +28,8 @@
     </dependencies>
 
     <build>
+            <defaultGoal>install</defaultGoal>
+    <sourceDirectory>${basedir}/src/</sourceDirectory>
         <resources>
       <!-- Data files -->
       <resource>

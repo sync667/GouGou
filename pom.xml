@@ -4,7 +4,7 @@
 
     <groupId>com.gmail.sync667</groupId>
     <artifactId>GouGou</artifactId>
-    <version>{buildNumber}</version>
+    <version>ALPHA-0.0.1</version>
     <packaging>jar</packaging>
 
     <name>GouGou</name>

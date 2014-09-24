@@ -2,6 +2,7 @@ package com.gmail.sync667.gougou.entities;
 
 import com.gmail.sync667.gougou.InputHandler;
 import com.gmail.sync667.gougou.gfx.Colours;
+import com.gmail.sync667.gougou.gfx.Font;
 import com.gmail.sync667.gougou.gfx.Screen;
 import com.gmail.sync667.gougou.level.Level;
 
@@ -12,10 +13,12 @@ public class Player extends Mob {
     protected boolean isSwimming = false;
     private int tickCount = 0;
     public int scale = 1;
+    private final String username;
 
-    public Player(Level level, int x, int y, InputHandler input) {
+    public Player(Level level, int x, int y, InputHandler input, String username) {
         super(level, "Gracz", x, y, 1);
         this.input = input;
+        this.username = username;
     }
 
     @Override
@@ -100,6 +103,10 @@ public class Player extends Mob {
                     flipBottom, scale);
             screen.render(xOffset + modifier - (modifier * flipBottom), yOffset + modifier, (xTile + 1) + (yTile + 1)
                     * 32, colour, flipBottom, scale);
+        }
+        if (username != null) {
+            Font.render(username, screen, xOffset - ((username.length() - 1) / 2 * 8), yOffset - 10,
+                    Colours.get(-1, -1, -1, 555), 1);
         }
     }
 

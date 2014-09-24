@@ -9,11 +9,13 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 
 import com.gmail.sync667.gougou.entities.Player;
 import com.gmail.sync667.gougou.gfx.Screen;
 import com.gmail.sync667.gougou.gfx.SpriteSheet;
 import com.gmail.sync667.gougou.level.Level;
+import com.gmail.sync667.gougou.net.GouGouClient;
 
 public class GouGou extends Canvas implements Runnable {
 
@@ -23,6 +25,7 @@ public class GouGou extends Canvas implements Runnable {
     public static final int HEIGHT = WIDTH / 12 * 9;
     public static final int SCALE = 3;
     public static final String NAME = "GouGou";
+    public static final String VERSION = "ALPHA-0.1 Build 4";
 
     private final JFrame frame;
 
@@ -35,6 +38,8 @@ public class GouGou extends Canvas implements Runnable {
 
     private Screen screen;
     public InputHandler input;
+
+    private GouGouClient gougouClient;
 
     public Level level;
     public Player player;
@@ -74,7 +79,9 @@ public class GouGou extends Canvas implements Runnable {
         screen = new Screen(WIDTH, HEIGHT, new SpriteSheet("/Sprite.png"));
         input = new InputHandler(this);
         level = new Level("/levels/level1.png");
-        player = new Player(level, 80, 100, input);
+        player = new Player(level, 80, 100, input, JOptionPane.showInputDialog(this, "Wpisz swoj nick!"));
+
+        // gougouClient.sendData("ping".getBytes());
 
         level.addEntity(player);
     }
@@ -82,6 +89,8 @@ public class GouGou extends Canvas implements Runnable {
     public synchronized void start() {
         running = true;
         new Thread(this).start();
+        gougouClient = new GouGouClient(this, "localhost");
+        gougouClient.start();
     }
 
     public synchronized void stop() {
@@ -127,7 +136,9 @@ public class GouGou extends Canvas implements Runnable {
 
             if (System.currentTimeMillis() - lastTimer >= 1000) {
                 lastTimer += 1000;
-                System.out.println(ticks + " ticks, " + frames + " frames");
+                frame.setTitle(ticks + " ticks, " + frames + " frames"); // temp debuging info,
+                                                                         // should be rendered on
+                                                                         // game screen
                 frames = 0;
                 ticks = 0;
             }

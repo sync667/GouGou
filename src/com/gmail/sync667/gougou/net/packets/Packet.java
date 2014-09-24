@@ -5,7 +5,8 @@ import com.gmail.sync667.gougou.net.GouGouClient;
 public abstract class Packet {
 
     public static enum PacketTypes {
-        INVAILD(-1), HANDSHAKE(00), LOGIN(01), CONNECT(02), DISCONNECT(03), MOVE(04);
+        INVAILD(-1), HANDSHAKE_CLIENT(00), HANDSHAKE_SERVER(01), LOGIN(02), CONNECT(03), DISCONNECT(04), SPAWN_POSITION(
+                05);
 
         private int packetId;
 

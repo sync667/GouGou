@@ -13,7 +13,7 @@ import java.net.UnknownHostException;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
-import com.gmail.sync667.gougou.entities.Player;
+import com.gmail.sync667.gougou.entities.player.Player;
 import com.gmail.sync667.gougou.gfx.Screen;
 import com.gmail.sync667.gougou.gfx.SpriteSheet;
 import com.gmail.sync667.gougou.level.Level;
@@ -29,7 +29,7 @@ public class GouGou extends Canvas implements Runnable {
     public static final int HEIGHT = WIDTH / 12 * 9;
     public static final int SCALE = 3;
     public static final String NAME = "GouGou";
-    public static final String VERSION = "ALPHA-0.1 Build 6";
+    public static final String VERSION = "ALPHA-0.1 Build 8";
     public static final int PROTOCOL_VERSION = 1;
 
     private final JFrame frame;
@@ -50,7 +50,7 @@ public class GouGou extends Canvas implements Runnable {
     public InetAddress serverIp;
     public int port;
     public Level level;
-    public Player player;
+    public static Player player;
 
     public GouGou() {
         setMinimumSize(new Dimension(WIDTH * SCALE, HEIGHT * SCALE));

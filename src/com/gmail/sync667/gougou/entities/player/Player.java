@@ -1,6 +1,7 @@
-package com.gmail.sync667.gougou.entities;
+package com.gmail.sync667.gougou.entities.player;
 
 import com.gmail.sync667.gougou.InputHandler;
+import com.gmail.sync667.gougou.entities.Mob;
 import com.gmail.sync667.gougou.gfx.Colours;
 import com.gmail.sync667.gougou.gfx.Font;
 import com.gmail.sync667.gougou.gfx.Screen;
@@ -26,17 +27,19 @@ public class Player extends Mob {
         int xa = 0;
         int ya = 0;
 
-        if (input.up.isPressed()) {
-            ya--;
-        }
-        if (input.down.isPressed()) {
-            ya++;
-        }
-        if (input.left.isPressed()) {
-            xa--;
-        }
-        if (input.right.isPressed()) {
-            xa++;
+        if (entityId == com.gmail.sync667.gougou.GouGou.player.getEntityId()) {
+            if (input.up.isPressed()) {
+                ya--;
+            }
+            if (input.down.isPressed()) {
+                ya++;
+            }
+            if (input.left.isPressed()) {
+                xa--;
+            }
+            if (input.right.isPressed()) {
+                xa++;
+            }
         }
 
         if (xa != 0 || ya != 0) {

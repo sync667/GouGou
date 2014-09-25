@@ -25,4 +25,8 @@ public abstract class Entity {
     public int getEntityId() {
         return entityId;
     }
+
+    public abstract int getMovingDir();
+
+    public abstract void setMovingDir(int movingDir);
 }

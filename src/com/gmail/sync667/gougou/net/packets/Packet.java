@@ -6,7 +6,7 @@ public abstract class Packet {
 
     public static enum PacketTypes {
         INVAILD(-1), HANDSHAKE_CLIENT(00), HANDSHAKE_SERVER(01), LOGIN(02), CONNECT(03), DISCONNECT(04), SPAWN_POSITION(
-                05), SPAWN_ENTITY(06), DESPAWN_ENTITY(07), ENTITY_MOVE(10);
+                05), SPAWN_ENTITY(06), DESPAWN_ENTITY(07), ENTITY_MOVE(10), PING(11);
 
         private int packetId;
 

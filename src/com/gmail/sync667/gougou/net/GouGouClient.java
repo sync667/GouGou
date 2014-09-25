@@ -6,11 +6,10 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.Objects;
 
 import com.gmail.sync667.gougou.GouGou;
 import com.gmail.sync667.gougou.entities.Entity;
-import com.gmail.sync667.gougou.entities.Player;
+import com.gmail.sync667.gougou.entities.player.Player;
 import com.gmail.sync667.gougou.net.packets.Packet;
 import com.gmail.sync667.gougou.net.packets.Packet.PacketTypes;
 import com.gmail.sync667.gougou.net.packets.Packet01HandShakeServer;
@@ -102,19 +101,21 @@ public class GouGouClient extends Thread {
                     }
                 }
 
-                gougou.player = new Player(packet03.getEntityId(), gougou.level, 0, 0, gougou.input, gougou.username);
+                GouGou.player = new Player(packet03.getEntityId(), gougou.level, 0, 0, gougou.input, gougou.username);
 
                 break;
             case DISCONNECT:
                 Packet04Disconnect packet04 = new Packet04Disconnect(data);
+
+                gougou.stop();
                 break;
             case SPAWN_POSITION:
                 Packet05SpawnPosition packet05 = new Packet05SpawnPosition(data);
 
-                gougou.player.x = packet05.getX();
-                gougou.player.y = packet05.getY();
+                GouGou.player.x = packet05.getX();
+                GouGou.player.y = packet05.getY();
 
-                gougou.level.addEntity(gougou.player);
+                gougou.level.addEntity(GouGou.player);
                 break;
             case SPAWN_ENTITY:
                 Packet06SpawnEntity packet06 = new Packet06SpawnEntity(data);
@@ -136,18 +137,24 @@ public class GouGouClient extends Thread {
                 Packet10EntityMove packet10 = new Packet10EntityMove(data);
 
                 for (Entity e : gougou.level.entities) {
-                    if (!Objects.equals(e, gougou.player)) {
-                        if (e.getEntityId() == packet10.getEntityId()) {
+                    if (e.getEntityId() == packet10.getEntityId()) {
+                        if (e.getEntityId() != GouGou.player.getEntityId()) {
                             if (e.x != packet10.getX()) {
                                 e.x = packet10.getX();
                             }
                             if (e.y != packet10.getY()) {
                                 e.y = packet10.getY();
                             }
-                            break;
+                            if (e.getMovingDir() != packet10.getMovingDir()) {
+                                e.setMovingDir(packet10.getMovingDir());
+                            }
                         }
+                        break;
                     }
                 }
+                break;
+            case PING:
+
                 break;
         }
     }

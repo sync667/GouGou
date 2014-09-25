@@ -50,7 +50,7 @@ public abstract class Mob extends Entity {
 
         }
 
-        GouGou.getClient().sendData(new Packet10EntityMove(entityId, x, y).getData());
+        GouGou.getClient().sendData(new Packet10EntityMove(entityId, x, y, movingDir).getData());
     }
 
     public abstract boolean hasCollided(int xa, int ya);
@@ -71,6 +71,16 @@ public abstract class Mob extends Entity {
 
     public String getName() {
         return name;
+    }
+
+    @Override
+    public int getMovingDir() {
+        return movingDir;
+    }
+
+    @Override
+    public void setMovingDir(int movingDir) {
+        this.movingDir = movingDir;
     }
 
 }

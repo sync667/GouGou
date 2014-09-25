@@ -88,14 +88,14 @@ public class GouGou extends Canvas implements Runnable {
         input = new InputHandler(this);
         level = new Level("/levels/level1.png");
 
-        username = JOptionPane.showInputDialog(this, "Wpisz swoj nick!");
-        String inputServerIp = JOptionPane.showInputDialog(this, "Wpisz adres serwera!");
+        username = JOptionPane.showInputDialog(this, "Type your username!");
+        String inputServerIp = JOptionPane.showInputDialog(this, "Type server ip address!");
 
         String[] iSIP = inputServerIp.split(":");
         try {
             serverIp = InetAddress.getByName(iSIP[0]);
         } catch (UnknownHostException e) {
-            inputServerIp = JOptionPane.showInputDialog(this, "B³¹d! Wpisz adres serwera ponownie!");
+            inputServerIp = JOptionPane.showInputDialog(this, "Error! Type server ip address again!");
         }
 
         port = Short.valueOf(iSIP[1]);

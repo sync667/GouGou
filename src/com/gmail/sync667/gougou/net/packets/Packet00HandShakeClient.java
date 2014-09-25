@@ -4,7 +4,7 @@ import com.gmail.sync667.gougou.net.GouGouClient;
 
 public class Packet00HandShakeClient extends Packet {
 
-    private final String version;
+    private int PROTOCOL_VERSION;
     private short nextState;
 
     /**
@@ -15,22 +15,23 @@ public class Packet00HandShakeClient extends Packet {
         super(00);
 
         String[] dataArray = readData(data).split("/");
-        this.version = dataArray[0];
         try {
+            this.PROTOCOL_VERSION = Integer.valueOf(dataArray[0]);
             this.nextState = Short.valueOf(dataArray[1]);
         } catch (NumberFormatException e) {
+            this.PROTOCOL_VERSION = 0;
             this.nextState = 0;
         }
     }
 
     /**
-     * @param version
-     *            of client
+     * @param int PROTOCOL_VERSION of client
+     * @param short nextState (0 - list status, 1 - connecting to server)
      */
-    public Packet00HandShakeClient(String version, short nextState) {
+    public Packet00HandShakeClient(int PROTOCOL_VERSION, short nextState) {
         super(00);
 
-        this.version = version;
+        this.PROTOCOL_VERSION = PROTOCOL_VERSION;
         this.nextState = nextState;
     }
 
@@ -41,7 +42,7 @@ public class Packet00HandShakeClient extends Packet {
 
     @Override
     public byte[] getData() {
-        return ("00" + this.version + "/" + nextState).getBytes();
+        return ("00" + this.PROTOCOL_VERSION + "/" + nextState).getBytes();
     }
 
 }

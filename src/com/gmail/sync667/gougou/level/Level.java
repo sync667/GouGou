@@ -89,6 +89,9 @@ public class Level {
 
     public void tick() {
         for (Entity e : entities) {
+            if (e == null) {
+                break;
+            }
             e.tick();
         }
     }
@@ -119,6 +122,9 @@ public class Level {
 
     public void renderEntities(Screen screen) {
         for (Entity e : entities) {
+            if (e == null) {
+                break;
+            }
             e.render(screen);
         }
 
@@ -141,5 +147,19 @@ public class Level {
 
     public void addEntity(Entity entity) {
         entities.add(entity);
+    }
+
+    public void removeEntity(int entityId) {
+        int index = 0;
+        for (Entity e : entities) {
+            index++;
+            if (e.getEntityId() == entityId) {
+                break;
+            }
+        }
+
+        if (index != 0) {
+            entities.remove(index);
+        }
     }
 }

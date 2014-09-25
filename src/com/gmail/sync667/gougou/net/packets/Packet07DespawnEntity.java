@@ -2,7 +2,7 @@ package com.gmail.sync667.gougou.net.packets;
 
 import com.gmail.sync667.gougou.net.GouGouClient;
 
-public class Packet03Connect extends Packet {
+public class Packet07DespawnEntity extends Packet {
 
     private int entityId;
 
@@ -10,8 +10,8 @@ public class Packet03Connect extends Packet {
      * @param parsed
      *            packet data.
      */
-    public Packet03Connect(byte[] data) {
-        super(03);
+    public Packet07DespawnEntity(byte[] data) {
+        super(07);
 
         try {
             this.entityId = Integer.valueOf(readData(data));

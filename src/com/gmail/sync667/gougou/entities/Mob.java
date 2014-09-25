@@ -1,7 +1,9 @@
 package com.gmail.sync667.gougou.entities;
 
+import com.gmail.sync667.gougou.GouGou;
 import com.gmail.sync667.gougou.level.Level;
 import com.gmail.sync667.gougou.level.tiles.Tile;
+import com.gmail.sync667.gougou.net.packets.Packet10EntityMove;
 
 public abstract class Mob extends Entity {
 
@@ -12,8 +14,8 @@ public abstract class Mob extends Entity {
     protected int movingDir = 1;
     protected int scale = 1;
 
-    public Mob(Level level, String name, int x, int y, int speed) {
-        super(level);
+    public Mob(int entityId, Level level, String name, int x, int y, int speed) {
+        super(entityId, level);
         this.name = name;
         this.x = x;
         this.y = y;
@@ -47,6 +49,8 @@ public abstract class Mob extends Entity {
             y += ya * speed;
 
         }
+
+        GouGou.getClient().sendData(new Packet10EntityMove(entityId, x, y).getData());
     }
 
     public abstract boolean hasCollided(int xa, int ya);

@@ -15,8 +15,8 @@ public class Player extends Mob {
     public int scale = 1;
     private final String username;
 
-    public Player(Level level, int x, int y, InputHandler input, String username) {
-        super(level, "Gracz", x, y, 1);
+    public Player(int entityId, Level level, int x, int y, InputHandler input, String username) {
+        super(entityId, level, "Gracz", x, y, 1);
         this.input = input;
         this.username = username;
     }
@@ -138,6 +138,14 @@ public class Player extends Mob {
             }
         }
         return false;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setSpeed(int speed) {
+        this.speed = speed;
     }
 
 }

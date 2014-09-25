@@ -7,6 +7,8 @@ import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -16,6 +18,8 @@ import com.gmail.sync667.gougou.gfx.Screen;
 import com.gmail.sync667.gougou.gfx.SpriteSheet;
 import com.gmail.sync667.gougou.level.Level;
 import com.gmail.sync667.gougou.net.GouGouClient;
+import com.gmail.sync667.gougou.net.packets.Packet00HandShakeClient;
+import com.gmail.sync667.gougou.net.packets.Packet04Disconnect;
 
 public class GouGou extends Canvas implements Runnable {
 
@@ -25,7 +29,8 @@ public class GouGou extends Canvas implements Runnable {
     public static final int HEIGHT = WIDTH / 12 * 9;
     public static final int SCALE = 3;
     public static final String NAME = "GouGou";
-    public static final String VERSION = "ALPHA-0.1 Build 4";
+    public static final String VERSION = "ALPHA-0.1 Build 6";
+    public static final int PROTOCOL_VERSION = 1;
 
     private final JFrame frame;
 
@@ -39,8 +44,11 @@ public class GouGou extends Canvas implements Runnable {
     private Screen screen;
     public InputHandler input;
 
-    private GouGouClient gougouClient;
+    private static GouGouClient gougouClient;
 
+    public String username;
+    public InetAddress serverIp;
+    public int port;
     public Level level;
     public Player player;
 
@@ -79,21 +87,32 @@ public class GouGou extends Canvas implements Runnable {
         screen = new Screen(WIDTH, HEIGHT, new SpriteSheet("/Sprite.png"));
         input = new InputHandler(this);
         level = new Level("/levels/level1.png");
-        player = new Player(level, 80, 100, input, JOptionPane.showInputDialog(this, "Wpisz swoj nick!"));
 
-        // gougouClient.sendData("ping".getBytes());
+        username = JOptionPane.showInputDialog(this, "Wpisz swoj nick!");
+        String inputServerIp = JOptionPane.showInputDialog(this, "Wpisz adres serwera!");
 
-        level.addEntity(player);
+        String[] iSIP = inputServerIp.split(":");
+        try {
+            serverIp = InetAddress.getByName(iSIP[0]);
+        } catch (UnknownHostException e) {
+            inputServerIp = JOptionPane.showInputDialog(this, "B³¹d! Wpisz adres serwera ponownie!");
+        }
+
+        port = Short.valueOf(iSIP[1]);
+
+        gougouClient = new GouGouClient(this, serverIp, port);
+        gougouClient.start();
+
+        gougouClient.sendData(new Packet00HandShakeClient(PROTOCOL_VERSION, (short) 1).getData());
     }
 
     public synchronized void start() {
         running = true;
         new Thread(this).start();
-        gougouClient = new GouGouClient(this, "localhost");
-        gougouClient.start();
     }
 
     public synchronized void stop() {
+        gougouClient.sendData(new Packet04Disconnect(player.entityId, null).getData());
         running = false;
     }
 
@@ -156,10 +175,16 @@ public class GouGou extends Canvas implements Runnable {
             createBufferStrategy(3);
             return;
         }
+        int xOffset;
+        int yOffset;
 
-        int xOffset = player.x - (screen.width / 2);
-        int yOffset = player.y - (screen.height / 2);
-
+        if (player == null) {
+            xOffset = 0 - (screen.width / 2);
+            yOffset = 0 - (screen.height / 2);
+        } else {
+            xOffset = player.x - (screen.width / 2);
+            yOffset = player.y - (screen.height / 2);
+        }
         level.renderTiles(screen, xOffset, yOffset);
         level.renderEntities(screen);
 
@@ -178,6 +203,10 @@ public class GouGou extends Canvas implements Runnable {
         g.dispose();
         bs.show();
 
+    }
+
+    public static GouGouClient getClient() {
+        return gougouClient;
     }
 
     public static void main(String[] args) {

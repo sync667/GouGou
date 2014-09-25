@@ -4,7 +4,7 @@ import com.gmail.sync667.gougou.net.GouGouClient;
 
 public class Packet01HandShakeServer extends Packet {
 
-    private final String version;
+    private int PROTOCOL_VERSION;
     private int players = 0;
     private int slots = 0;
     private final String motd;
@@ -18,12 +18,13 @@ public class Packet01HandShakeServer extends Packet {
         super(01);
 
         String[] dataArray = readData(data).split("/");
-        this.version = dataArray[0];
         try {
+            this.PROTOCOL_VERSION = Integer.valueOf(dataArray[0]);
             this.players = Integer.valueOf(dataArray[1]);
             this.slots = Integer.valueOf(dataArray[2]);
             this.nextState = Short.valueOf(dataArray[3]);
         } catch (NumberFormatException e) {
+            this.PROTOCOL_VERSION = 0;
             this.players = 0;
             this.slots = 0;
         }
@@ -46,8 +47,8 @@ public class Packet01HandShakeServer extends Packet {
         return null;
     }
 
-    public String getVersion() {
-        return version;
+    public int getPROTOCOL_VERSION() {
+        return PROTOCOL_VERSION;
     }
 
     public int getPlayers() {

@@ -18,7 +18,7 @@ public class Packet02Login extends Packet {
 
     /**
      * @param username
-     *            Name of player.
+     *            of player.
      */
     public Packet02Login(String username) {
         super(02);

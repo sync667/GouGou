@@ -8,6 +8,7 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
+import com.gmail.sync667.gougou.GouGou;
 import com.gmail.sync667.gougou.entities.Entity;
 import com.gmail.sync667.gougou.gfx.Screen;
 import com.gmail.sync667.gougou.level.tiles.Tile;
@@ -88,6 +89,9 @@ public class Level {
     }
 
     public void tick() {
+        if (GouGou.player == null) {
+            return;
+        }
         for (Entity e : entities) {
             if (e == null) {
                 break;

@@ -29,10 +29,10 @@ public class GouGou extends Canvas implements Runnable {
     public static final int HEIGHT = WIDTH / 12 * 9;
     public static final int SCALE = 3;
     public static final String NAME = "GouGou";
-    public static final String VERSION = "ALPHA-0.1 Build 8";
-    public static final int PROTOCOL_VERSION = 1;
+    public static final String VERSION = "ALPHA-0.1 Build 9";
+    public static final int PROTOCOL_VERSION = 2;
 
-    private final JFrame frame;
+    public JFrame frame;
 
     public boolean running = false;
     public int ticksCount = 0;
@@ -43,8 +43,9 @@ public class GouGou extends Canvas implements Runnable {
 
     private Screen screen;
     public InputHandler input;
+    public WindowHandler windowHandler;
 
-    private static GouGouClient gougouClient;
+    public static GouGouClient gougouClient;
 
     public String username;
     public InetAddress serverIp;
@@ -104,6 +105,9 @@ public class GouGou extends Canvas implements Runnable {
         gougouClient.start();
 
         gougouClient.sendData(new Packet00HandShakeClient(PROTOCOL_VERSION, (short) 1).getData());
+
+        windowHandler = new WindowHandler(this);
+
     }
 
     public synchronized void start() {

@@ -1,5 +1,6 @@
 package com.gmail.sync667.gougou.entities.player;
 
+import com.gmail.sync667.gougou.GouGou;
 import com.gmail.sync667.gougou.InputHandler;
 import com.gmail.sync667.gougou.entities.Mob;
 import com.gmail.sync667.gougou.gfx.Colours;
@@ -27,7 +28,11 @@ public class Player extends Mob {
         int xa = 0;
         int ya = 0;
 
-        if (entityId == com.gmail.sync667.gougou.GouGou.player.getEntityId()) {
+        if (GouGou.player == null) {
+            return;
+        }
+
+        if (entityId == GouGou.player.getEntityId()) {
             if (input.up.isPressed()) {
                 ya--;
             }
@@ -40,25 +45,25 @@ public class Player extends Mob {
             if (input.right.isPressed()) {
                 xa++;
             }
-        }
 
-        if (xa != 0 || ya != 0) {
-            move(xa, ya);
-            isMoving = true;
-        } else {
-            isMoving = false;
-        }
+            if (xa != 0 || ya != 0) {
+                move(xa, ya);
+                isMoving = true;
+            } else {
+                isMoving = false;
+            }
 
-        if (level.getTile(this.x >> 3, this.y >> 3).getId() == 3) {
-            isSwimming = true;
-        }
-        if (isSwimming && level.getTile(this.x >> 3, this.y >> 3).getId() != 3) {
-            isSwimming = false;
-        }
+            if (level.getTile(this.x >> 3, this.y >> 3).getId() == 3) {
+                isSwimming = true;
+            }
+            if (isSwimming && level.getTile(this.x >> 3, this.y >> 3).getId() != 3) {
+                isSwimming = false;
+            }
 
-        tickCount++;
+            tickCount++;
 
-        this.scale = 1;
+            this.scale = 1;
+        }
     }
 
     @Override

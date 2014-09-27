@@ -67,7 +67,7 @@ public class GouGouClient extends Thread {
 
             parsePacket(packet.getData());
 
-            System.out.println("SERVER > " + message);
+            System.out.println("SERVER > CLIENT [" + message + "]");
 
         }
     }
@@ -85,7 +85,7 @@ public class GouGouClient extends Thread {
                 Packet01HandShakeServer packet01 = new Packet01HandShakeServer(data);
 
                 if (packet01.getNextState() == 1) {
-                    this.sendData(new Packet02Login(gougou.username).getData());
+                    this.sendData(new Packet02Login(gougou.username.trim()).getData());
                 }
                 break;
             case LOGIN:
@@ -107,7 +107,6 @@ public class GouGouClient extends Thread {
             case DISCONNECT:
                 Packet04Disconnect packet04 = new Packet04Disconnect(data);
 
-                gougou.stop();
                 break;
             case SPAWN_POSITION:
                 Packet05SpawnPosition packet05 = new Packet05SpawnPosition(data);
@@ -169,6 +168,7 @@ public class GouGouClient extends Thread {
 
         String message = new String(packet.getData());
 
-        System.out.println("CLIENT > " + message);
+        System.out.println("CLIENT > SERVER [" + message + "]");
+
     }
 }

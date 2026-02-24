@@ -10,6 +10,8 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.handler.timeout.IdleStateHandler;
 
 import java.io.IOException;
 import java.net.*;
@@ -88,6 +90,7 @@ public class GameServer {
                         ch.pipeline().addLast(
                             new LengthFieldBasedFrameDecoder(Protocol.MAX_PACKET_SIZE, 0, 4, 0, 4),
                             new LengthFieldPrepender(4),
+                            new IdleStateHandler(60, 0, 0),
                             new ServerHandler()
                         );
                     }
@@ -296,6 +299,14 @@ public class GameServer {
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
             handleDisconnect(ctx.channel());
+        }
+
+        @Override
+        public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
+            if (evt instanceof IdleStateEvent) {
+                System.out.println("Closing idle connection: " + ctx.channel().remoteAddress());
+                ctx.close();
+            }
         }
 
         @Override

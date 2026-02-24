@@ -199,10 +199,23 @@ public class GouGouLauncher {
         }
     }
 
+    private static final String ALLOWED_DOWNLOAD_HOST = "github.com";
+    private static final String ALLOWED_DOWNLOAD_HOST_ALT = "objects.githubusercontent.com";
+
     private void downloadUpdate(String urlStr) throws IOException {
+        // Validate URL against allowed hosts to prevent SSRF
+        URI uri = URI.create(urlStr);
+        String host = uri.getHost();
+        if (host == null || (!host.endsWith(ALLOWED_DOWNLOAD_HOST) && !host.endsWith(ALLOWED_DOWNLOAD_HOST_ALT))) {
+            throw new IOException("Download URL not from trusted host: " + host);
+        }
+        if (!"https".equals(uri.getScheme())) {
+            throw new IOException("Download URL must use HTTPS");
+        }
+
         HttpURLConnection conn = null;
         try {
-            URL url = URI.create(urlStr).toURL();
+            URL url = uri.toURL();
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestProperty("User-Agent", "GouGou-Launcher");
             conn.setConnectTimeout(30000);

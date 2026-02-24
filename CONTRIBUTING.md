@@ -21,16 +21,18 @@ Thank you for your interest in contributing to GouGou! This document provides gu
 - An IDE (IntelliJ IDEA recommended)
 
 ### Project Structure
-- `core/` — Platform-independent game logic
-- `desktop/` — Desktop launcher
-- `server/` — Dedicated server
+- `core/` — Platform-independent game logic (LibGDX + Netty)
+- `desktop/` — Desktop launcher (LWJGL3)
+- `server/` — Dedicated server with H2 database
+- `launcher/` — Auto-updater
 - `assets/` — Game resources
 
 ### Running
 ```bash
 gradle :desktop:run    # Run the game
-gradle :server:run     # Run the server
-gradle :core:test      # Run tests
+gradle :server:run     # Run the dedicated server
+gradle :launcher:run   # Run with auto-updater
+gradle test            # Run all tests
 ```
 
 ## Code Guidelines
@@ -61,9 +63,16 @@ gradle :core:test      # Run tests
 
 ### New Packet Types
 1. Add constant to `Protocol.java`
-2. Add create method to `Protocol.java`
-3. Handle in `GameClient` and `GameServer`
-4. Add test in `ProtocolTest.java`
+2. Add create method to `Protocol.java` using Netty ByteBuf
+3. Handle in `GameClient.ClientHandler` and `GameServer.ServerHandler`
+4. For server-authoritative state: only the server should create/send the packet
+5. Add test in `ProtocolTest.java`
+
+### Server-Side Features
+1. Add to `ServerPlayerData` in `GameServer.java` for runtime state
+2. Add to `players` table schema in `ServerDatabase.java` for persistence
+3. Add corresponding `savePlayer`/`loadPlayer` fields
+4. Add test in `ServerDatabaseTest.java`
 
 ## Bug Reports
 

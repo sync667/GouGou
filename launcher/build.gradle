@@ -1,0 +1,21 @@
+plugins {
+    id 'application'
+}
+
+dependencies {
+    implementation "com.google.code.gson:gson:$gsonVersion"
+}
+
+application {
+    mainClass = 'com.gougou.launcher.GouGouLauncher'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.gougou.launcher.GouGouLauncher'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

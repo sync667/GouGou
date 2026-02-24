@@ -1,12 +1,13 @@
 package com.gougou.core.net;
 
-import java.nio.ByteBuffer;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import java.nio.charset.StandardCharsets;
 
 public final class Protocol {
-    public static final int VERSION = 3;
+    public static final int VERSION = 4;
     public static final int DEFAULT_PORT = 7777;
-    public static final int MAX_PACKET_SIZE = 1024;
+    public static final int MAX_PACKET_SIZE = 4096;
     public static final int DISCOVERY_PORT = 7778;
     public static final byte[] DISCOVERY_REQUEST = "GOUGOU_DISCOVER".getBytes(StandardCharsets.UTF_8);
     public static final byte[] DISCOVERY_RESPONSE_PREFIX = "GOUGOU_SERVER:".getBytes(StandardCharsets.UTF_8);
@@ -26,6 +27,9 @@ public final class Protocol {
     public static final byte WORLD_DATA = 0x0C;
     public static final byte ENTITY_UPDATE = 0x0D;
     public static final byte PLAYER_ACTION = 0x0E;
+    public static final byte PLAYER_STATE = 0x0F;
+    public static final byte MOVE_INPUT = 0x10;
+    public static final byte INVENTORY_UPDATE = 0x11;
 
     public static final int MAX_USERNAME_LENGTH = 32;
     public static final int MAX_CHAT_LENGTH = 512;
@@ -42,94 +46,157 @@ public final class Protocol {
         return len;
     }
 
+    // --- Packet creation methods ---
+
     public static byte[] createHandshake() {
-        ByteBuffer buf = ByteBuffer.allocate(5);
-        buf.put(HANDSHAKE);
-        buf.putInt(VERSION);
-        return buf.array();
+        ByteBuf buf = Unpooled.buffer(5);
+        buf.writeByte(HANDSHAKE);
+        buf.writeInt(VERSION);
+        return toBytes(buf);
     }
 
     public static byte[] createHandshakeAck(boolean accepted, String message) {
         byte[] msgBytes = message.getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buf = ByteBuffer.allocate(2 + msgBytes.length);
-        buf.put(HANDSHAKE_ACK);
-        buf.put((byte) (accepted ? 1 : 0));
-        buf.put(msgBytes);
-        return buf.array();
+        ByteBuf buf = Unpooled.buffer(2 + msgBytes.length);
+        buf.writeByte(HANDSHAKE_ACK);
+        buf.writeBoolean(accepted);
+        buf.writeBytes(msgBytes);
+        return toBytes(buf);
     }
 
     public static byte[] createLogin(String username, int characterClass, int skinColor) {
         byte[] nameBytes = username.getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buf = ByteBuffer.allocate(1 + 4 + nameBytes.length + 4 + 4);
-        buf.put(LOGIN);
-        buf.putInt(nameBytes.length);
-        buf.put(nameBytes);
-        buf.putInt(characterClass);
-        buf.putInt(skinColor);
-        return buf.array();
+        int len = Math.min(nameBytes.length, MAX_USERNAME_LENGTH);
+        ByteBuf buf = Unpooled.buffer(1 + 4 + len + 4 + 4);
+        buf.writeByte(LOGIN);
+        buf.writeInt(len);
+        buf.writeBytes(nameBytes, 0, len);
+        buf.writeInt(characterClass);
+        buf.writeInt(skinColor);
+        return toBytes(buf);
     }
 
     public static byte[] createLoginAck(int entityId, float spawnX, float spawnY, long worldSeed) {
-        ByteBuffer buf = ByteBuffer.allocate(1 + 4 + 4 + 4 + 8);
-        buf.put(LOGIN_ACK);
-        buf.putInt(entityId);
-        buf.putFloat(spawnX);
-        buf.putFloat(spawnY);
-        buf.putLong(worldSeed);
-        return buf.array();
+        ByteBuf buf = Unpooled.buffer(1 + 4 + 4 + 4 + 8);
+        buf.writeByte(LOGIN_ACK);
+        buf.writeInt(entityId);
+        buf.writeFloat(spawnX);
+        buf.writeFloat(spawnY);
+        buf.writeLong(worldSeed);
+        return toBytes(buf);
     }
 
     public static byte[] createDisconnect(int entityId) {
-        ByteBuffer buf = ByteBuffer.allocate(5);
-        buf.put(DISCONNECT);
-        buf.putInt(entityId);
-        return buf.array();
+        ByteBuf buf = Unpooled.buffer(5);
+        buf.writeByte(DISCONNECT);
+        buf.writeInt(entityId);
+        return toBytes(buf);
     }
 
     public static byte[] createSpawn(int entityId, String name, float x, float y, int type) {
         byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buf = ByteBuffer.allocate(1 + 4 + 4 + nameBytes.length + 4 + 4 + 4);
-        buf.put(SPAWN);
-        buf.putInt(entityId);
-        buf.putInt(nameBytes.length);
-        buf.put(nameBytes);
-        buf.putFloat(x);
-        buf.putFloat(y);
-        buf.putInt(type);
-        return buf.array();
+        int len = Math.min(nameBytes.length, MAX_NAME_LENGTH);
+        ByteBuf buf = Unpooled.buffer(1 + 4 + 4 + len + 4 + 4 + 4);
+        buf.writeByte(SPAWN);
+        buf.writeInt(entityId);
+        buf.writeInt(len);
+        buf.writeBytes(nameBytes, 0, len);
+        buf.writeFloat(x);
+        buf.writeFloat(y);
+        buf.writeInt(type);
+        return toBytes(buf);
+    }
+
+    public static byte[] createDespawn(int entityId) {
+        ByteBuf buf = Unpooled.buffer(5);
+        buf.writeByte(DESPAWN);
+        buf.writeInt(entityId);
+        return toBytes(buf);
     }
 
     public static byte[] createMove(int entityId, float x, float y, int direction) {
-        ByteBuffer buf = ByteBuffer.allocate(1 + 4 + 4 + 4 + 4);
-        buf.put(MOVE);
-        buf.putInt(entityId);
-        buf.putFloat(x);
-        buf.putFloat(y);
-        buf.putInt(direction);
-        return buf.array();
+        ByteBuf buf = Unpooled.buffer(1 + 4 + 4 + 4 + 4);
+        buf.writeByte(MOVE);
+        buf.writeInt(entityId);
+        buf.writeFloat(x);
+        buf.writeFloat(y);
+        buf.writeInt(direction);
+        return toBytes(buf);
+    }
+
+    public static byte[] createMoveInput(boolean up, boolean down, boolean left, boolean right) {
+        ByteBuf buf = Unpooled.buffer(2);
+        buf.writeByte(MOVE_INPUT);
+        int flags = 0;
+        if (up) flags |= 1;
+        if (down) flags |= 2;
+        if (left) flags |= 4;
+        if (right) flags |= 8;
+        buf.writeByte(flags);
+        return toBytes(buf);
     }
 
     public static byte[] createChat(int entityId, String message) {
         byte[] msgBytes = message.getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buf = ByteBuffer.allocate(1 + 4 + 4 + msgBytes.length);
-        buf.put(CHAT);
-        buf.putInt(entityId);
-        buf.putInt(msgBytes.length);
-        buf.put(msgBytes);
-        return buf.array();
+        int len = Math.min(msgBytes.length, MAX_CHAT_LENGTH);
+        ByteBuf buf = Unpooled.buffer(1 + 4 + 4 + len);
+        buf.writeByte(CHAT);
+        buf.writeInt(entityId);
+        buf.writeInt(len);
+        buf.writeBytes(msgBytes, 0, len);
+        return toBytes(buf);
     }
 
     public static byte[] createPing(long timestamp) {
-        ByteBuffer buf = ByteBuffer.allocate(9);
-        buf.put(PING);
-        buf.putLong(timestamp);
-        return buf.array();
+        ByteBuf buf = Unpooled.buffer(9);
+        buf.writeByte(PING);
+        buf.writeLong(timestamp);
+        return toBytes(buf);
     }
 
     public static byte[] createPong(long timestamp) {
-        ByteBuffer buf = ByteBuffer.allocate(9);
-        buf.put(PONG);
-        buf.putLong(timestamp);
-        return buf.array();
+        ByteBuf buf = Unpooled.buffer(9);
+        buf.writeByte(PONG);
+        buf.writeLong(timestamp);
+        return toBytes(buf);
+    }
+
+    public static byte[] createPlayerState(int entityId, int health, int maxHealth,
+                                            int mana, int maxMana, int level,
+                                            float x, float y, int direction,
+                                            boolean swimming) {
+        ByteBuf buf = Unpooled.buffer(1 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 1);
+        buf.writeByte(PLAYER_STATE);
+        buf.writeInt(entityId);
+        buf.writeInt(health);
+        buf.writeInt(maxHealth);
+        buf.writeInt(mana);
+        buf.writeInt(maxMana);
+        buf.writeInt(level);
+        buf.writeFloat(x);
+        buf.writeFloat(y);
+        buf.writeInt(direction);
+        buf.writeBoolean(swimming);
+        return toBytes(buf);
+    }
+
+    public static byte[] createInventoryUpdate(int entityId, String[] items) {
+        ByteBuf buf = Unpooled.buffer(256);
+        buf.writeByte(INVENTORY_UPDATE);
+        buf.writeInt(entityId);
+        buf.writeInt(items.length);
+        for (String item : items) {
+            byte[] itemBytes = item.getBytes(StandardCharsets.UTF_8);
+            buf.writeInt(itemBytes.length);
+            buf.writeBytes(itemBytes);
+        }
+        return toBytes(buf);
+    }
+
+    private static byte[] toBytes(ByteBuf buf) {
+        byte[] data = new byte[buf.readableBytes()];
+        buf.readBytes(data);
+        buf.release();
+        return data;
     }
 }

@@ -93,43 +93,43 @@ public class OldSchoolSkin extends Skin {
 
     private void buildDrawables() {
         // Panels
-        add("panel-bg",      newDrawable("outline-press", PANEL));
-        add("panel-dark",    newDrawable("outline-press", PANEL_DARK));
-        add("panel-gold",    newDrawable("outline",       GOLD_DARK));
+        add("panel-bg",      newDrawable("outline-press", PANEL),      Drawable.class);
+        add("panel-dark",    newDrawable("outline-press", PANEL_DARK), Drawable.class);
+        add("panel-gold",    newDrawable("outline",       GOLD_DARK),  Drawable.class);
 
         // Buttons
-        add("btn-up",        newDrawable("base",       BTN_UP));
-        add("btn-over",      newDrawable("base",       BTN_OVER));
-        add("btn-down",      newDrawable("base-press", BTN_DOWN));
-        add("btn-disabled",  newDrawable("base",       DISABLED));
+        add("btn-up",        newDrawable("base",       BTN_UP),   Drawable.class);
+        add("btn-over",      newDrawable("base",       BTN_OVER), Drawable.class);
+        add("btn-down",      newDrawable("base-press", BTN_DOWN), Drawable.class);
+        add("btn-disabled",  newDrawable("base",       DISABLED), Drawable.class);
 
         // Text fields
-        add("field-normal",  newDrawable("field", FIELD_BG));
-        add("field-focused", newDrawable("field", new Color(0.20f, 0.14f, 0.07f, 0.96f)));
+        add("field-normal",  newDrawable("field", FIELD_BG),                              Drawable.class);
+        add("field-focused", newDrawable("field", new Color(0.20f, 0.14f, 0.07f, 0.96f)), Drawable.class);
 
         // Select box
-        add("sel-up",        newDrawable("select",       BTN_UP));
-        add("sel-over",      newDrawable("select",       BTN_OVER));
-        add("sel-down",      newDrawable("select-press", BTN_DOWN));
-        add("sel-list-bg",   newDrawable("select-list",  PANEL_DARK));
+        add("sel-up",        newDrawable("select",       BTN_UP),     Drawable.class);
+        add("sel-over",      newDrawable("select",       BTN_OVER),   Drawable.class);
+        add("sel-down",      newDrawable("select-press", BTN_DOWN),   Drawable.class);
+        add("sel-list-bg",   newDrawable("select-list",  PANEL_DARK), Drawable.class);
 
         // Checkboxes
-        add("cb-off",        newDrawable("check-off", BTN_UP));
-        add("cb-on",         newDrawable("check-on",  GOLD));
-        add("cb-over",       newDrawable("check-off", BTN_OVER));
+        add("cb-off",        newDrawable("check-off", BTN_UP),   Drawable.class);
+        add("cb-on",         newDrawable("check-on",  GOLD),     Drawable.class);
+        add("cb-over",       newDrawable("check-off", BTN_OVER), Drawable.class);
 
         // Sliders
-        add("slider-track",  newDrawable("slider",   GOLD_DARK));
-        add("knob-up",       newDrawable("knob",     GOLD));
-        add("knob-over",     newDrawable("knob",     GOLD_BRIGHT));
+        add("slider-track",  newDrawable("slider", GOLD_DARK),   Drawable.class);
+        add("knob-up",       newDrawable("knob",   GOLD),        Drawable.class);
+        add("knob-over",     newDrawable("knob",   GOLD_BRIGHT), Drawable.class);
 
         // Misc
-        add("selection-bg",  newDrawable("dot",    new Color(0.45f, 0.30f, 0.06f, 0.65f)));
-        add("cursor-draw",   newDrawable("cursor", GOLD));
-        add("scroll-h",      newDrawable("scroll",   GOLD));
-        add("scroll-v-draw", newDrawable("scroll-v", GOLD));
-        add("scroll-h-bg",   newDrawable("scroll",   GOLD_DARK));
-        add("scroll-v-bg",   newDrawable("scroll-v", GOLD_DARK));
+        add("selection-bg",  newDrawable("dot",      new Color(0.45f, 0.30f, 0.06f, 0.65f)), Drawable.class);
+        add("cursor-draw",   newDrawable("cursor",   GOLD),      Drawable.class);
+        add("scroll-h",      newDrawable("scroll",   GOLD),      Drawable.class);
+        add("scroll-v-draw", newDrawable("scroll-v", GOLD),      Drawable.class);
+        add("scroll-h-bg",   newDrawable("scroll",   GOLD_DARK), Drawable.class);
+        add("scroll-v-bg",   newDrawable("scroll-v", GOLD_DARK), Drawable.class);
     }
 
     // ── Widget styles ─────────────────────────────────────────────────────

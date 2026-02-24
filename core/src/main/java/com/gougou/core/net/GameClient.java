@@ -203,8 +203,9 @@ public class GameClient {
                     DatagramPacket response = new DatagramPacket(buf, buf.length);
                     ds.receive(response);
                     String data = new String(response.getData(), 0, response.getLength(), StandardCharsets.UTF_8);
-                    if (data.startsWith("GOUGOU_SERVER:")) {
-                        servers.add(response.getAddress().getHostAddress() + ":" + data.substring(14));
+                    String prefix = new String(Protocol.DISCOVERY_RESPONSE_PREFIX, StandardCharsets.UTF_8);
+                    if (data.startsWith(prefix)) {
+                        servers.add(response.getAddress().getHostAddress() + ":" + data.substring(prefix.length()));
                     }
                 } catch (SocketTimeoutException e) {
                     break;

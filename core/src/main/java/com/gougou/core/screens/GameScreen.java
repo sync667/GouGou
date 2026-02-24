@@ -263,7 +263,8 @@ public class GameScreen implements Screen {
             moveUpdateTimer += delta;
             if (moveUpdateTimer >= 0.05f) { // 20 updates/sec
                 moveUpdateTimer = 0;
-                client.sendMove(localPlayer.getX(), localPlayer.getY(), localPlayer.getDirection());
+                client.sendMoveInput(inputManager.isMoveUp(), inputManager.isMoveDown(),
+                    inputManager.isMoveLeft(), inputManager.isMoveRight());
             }
 
             pingTimer += delta;

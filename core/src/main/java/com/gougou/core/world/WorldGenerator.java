@@ -85,7 +85,8 @@ public class WorldGenerator {
                     if (decRandom.nextDouble() < 0.01) tiles[x][y] = TileType.ROCK;
                     else decRandom.nextDouble(); // advance RNG to keep state consistent
                 } else {
-                    decRandom.nextDouble(); // advance RNG to keep state consistent                }
+                    decRandom.nextDouble();
+                }
             }
         }
     }

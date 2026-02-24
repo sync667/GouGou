@@ -177,8 +177,8 @@ public class MainMenuScreen implements Screen {
         checkOn.fill();
         checkOn.setColor(Color.WHITE);
         checkOn.drawRectangle(0, 0, 20, 20);
-        checkBoxStyle.checkboxOff = new com.badlogic.gdx.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.g2d.TextureRegion(new com.badlogic.gdx.graphics.Texture(checkOff)));
-        checkBoxStyle.checkboxOn = new com.badlogic.gdx.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.g2d.TextureRegion(new com.badlogic.gdx.graphics.Texture(checkOn)));
+        checkBoxStyle.checkboxOff = new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.g2d.TextureRegion(new com.badlogic.gdx.graphics.Texture(checkOff)));
+        checkBoxStyle.checkboxOn = new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.g2d.TextureRegion(new com.badlogic.gdx.graphics.Texture(checkOn)));
         checkOff.dispose();
         checkOn.dispose();
         skin.add("default", checkBoxStyle);
@@ -190,7 +190,7 @@ public class MainMenuScreen implements Screen {
         com.badlogic.gdx.graphics.Pixmap knobPixmap = new com.badlogic.gdx.graphics.Pixmap(16, 16, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
         knobPixmap.setColor(Color.GREEN);
         knobPixmap.fillCircle(8, 8, 7);
-        sliderStyle.knob = new com.badlogic.gdx.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.g2d.TextureRegion(new com.badlogic.gdx.graphics.Texture(knobPixmap)));
+        sliderStyle.knob = new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.g2d.TextureRegion(new com.badlogic.gdx.graphics.Texture(knobPixmap)));
         knobPixmap.dispose();
         skin.add("default-horizontal", sliderStyle);
 

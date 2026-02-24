@@ -1,0 +1,24 @@
+plugins {
+    id 'application'
+}
+
+dependencies {
+    implementation "com.google.code.gson:gson:$gsonVersion"
+
+    testImplementation "org.junit.jupiter:junit-jupiter:$junitVersion"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+application {
+    mainClass = 'com.gougou.launcher.GouGouLauncher'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.gougou.launcher.GouGouLauncher'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

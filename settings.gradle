@@ -1,0 +1,6 @@
+rootProject.name = 'GouGou'
+
+include 'core'
+include 'desktop'
+include 'server'
+include 'launcher'

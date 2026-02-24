@@ -110,7 +110,8 @@ public class GameClient {
         switch (type) {
             case Protocol.SPAWN -> {
                 int id = bb.getInt();
-                int nameLen = bb.getInt();
+                int nameLen = Protocol.validateReadLength(bb.getInt(), bb.remaining(), Protocol.MAX_NAME_LENGTH);
+                if (nameLen < 0) return;
                 byte[] nameBytes = new byte[nameLen];
                 bb.get(nameBytes);
                 String name = new String(nameBytes, StandardCharsets.UTF_8);
@@ -132,7 +133,8 @@ public class GameClient {
             }
             case Protocol.CHAT -> {
                 int id = bb.getInt();
-                int msgLen = bb.getInt();
+                int msgLen = Protocol.validateReadLength(bb.getInt(), bb.remaining(), Protocol.MAX_CHAT_LENGTH);
+                if (msgLen < 0) return;
                 byte[] msgBytes = new byte[msgLen];
                 bb.get(msgBytes);
                 String msg = new String(msgBytes, StandardCharsets.UTF_8);

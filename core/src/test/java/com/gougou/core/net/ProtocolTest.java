@@ -117,4 +117,13 @@ class ProtocolTest {
         assertEquals(10.0f, bb.getFloat(), 0.01f);
         assertEquals(2, bb.getInt());
     }
+
+    @Test
+    void testValidateReadLength() {
+        assertEquals(10, Protocol.validateReadLength(10, 100, 64));
+        assertEquals(-1, Protocol.validateReadLength(-1, 100, 64));
+        assertEquals(-1, Protocol.validateReadLength(100, 50, 64));
+        assertEquals(-1, Protocol.validateReadLength(100, 200, 64));
+        assertEquals(0, Protocol.validateReadLength(0, 100, 64));
+    }
 }

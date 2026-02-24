@@ -27,7 +27,20 @@ public final class Protocol {
     public static final byte ENTITY_UPDATE = 0x0D;
     public static final byte PLAYER_ACTION = 0x0E;
 
+    public static final int MAX_USERNAME_LENGTH = 32;
+    public static final int MAX_CHAT_LENGTH = 512;
+    public static final int MAX_NAME_LENGTH = 64;
+
     private Protocol() {}
+
+    public static int clampStringLength(byte[] bytes, int maxLen) {
+        return Math.min(bytes.length, maxLen);
+    }
+
+    public static int validateReadLength(int len, int remaining, int maxLen) {
+        if (len < 0 || len > remaining || len > maxLen) return -1;
+        return len;
+    }
 
     public static byte[] createHandshake() {
         ByteBuffer buf = ByteBuffer.allocate(5);

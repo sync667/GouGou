@@ -113,18 +113,19 @@ public class GameServer {
                 sendTo(packet.getAddress(), packet.getPort(), Protocol.createHandshakeAck(accepted, msg));
             }
             case Protocol.LOGIN -> {
-                int nameLen = bb.getInt();
-                byte[] nameBytes = new byte[nameLen];
-                bb.get(nameBytes);
-                String username = new String(nameBytes, StandardCharsets.UTF_8);
-                int charClass = bb.getInt();
-                int skinColor = bb.getInt();
-
                 if (clients.size() >= maxPlayers) {
                     sendTo(packet.getAddress(), packet.getPort(),
                         Protocol.createHandshakeAck(false, "Server full"));
                     return;
                 }
+
+                int nameLen = Protocol.validateReadLength(bb.getInt(), bb.remaining(), Protocol.MAX_USERNAME_LENGTH);
+                if (nameLen < 0) return;
+                byte[] nameBytes = new byte[nameLen];
+                bb.get(nameBytes);
+                String username = new String(nameBytes, StandardCharsets.UTF_8);
+                int charClass = bb.getInt();
+                int skinColor = bb.getInt();
 
                 int eid = nextEntityId++;
                 ClientInfo client = new ClientInfo(packet.getAddress(), packet.getPort(), eid, username);
@@ -172,7 +173,8 @@ public class GameServer {
                 ClientInfo client = clients.get(clientKey);
                 if (client != null) {
                     int eid = bb.getInt();
-                    int msgLen = bb.getInt();
+                    int msgLen = Protocol.validateReadLength(bb.getInt(), bb.remaining(), Protocol.MAX_CHAT_LENGTH);
+                    if (msgLen < 0) return;
                     byte[] msgBytes = new byte[msgLen];
                     bb.get(msgBytes);
                     String msg = new String(msgBytes, StandardCharsets.UTF_8);

@@ -35,6 +35,7 @@ public final class Protocol {
     public static final int MAX_CHAT_LENGTH = 512;
     public static final int MAX_NAME_LENGTH = 64;
     public static final int MAX_ITEM_NAME_LENGTH = 128;
+    public static final int MAX_INVENTORY_SIZE = 100;
 
     private Protocol() {}
 

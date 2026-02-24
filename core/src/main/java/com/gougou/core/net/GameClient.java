@@ -190,7 +190,7 @@ public class GameClient {
                     case Protocol.INVENTORY_UPDATE -> {
                         int id = in.readInt();
                         int count = in.readInt();
-                        if (count < 0 || count > 100) return;
+                        if (count < 0 || count > Protocol.MAX_INVENTORY_SIZE) return;
                         String[] items = new String[count];
                         for (int i = 0; i < count; i++) {
                             int itemLen = Protocol.validateReadLength(in.readInt(), in.readableBytes(), Protocol.MAX_ITEM_NAME_LENGTH);

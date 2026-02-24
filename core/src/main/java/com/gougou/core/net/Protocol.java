@@ -34,6 +34,7 @@ public final class Protocol {
     public static final int MAX_USERNAME_LENGTH = 32;
     public static final int MAX_CHAT_LENGTH = 512;
     public static final int MAX_NAME_LENGTH = 64;
+    public static final int MAX_ITEM_NAME_LENGTH = 128;
 
     private Protocol() {}
 
@@ -181,14 +182,18 @@ public final class Protocol {
     }
 
     public static byte[] createInventoryUpdate(int entityId, String[] items) {
-        ByteBuf buf = Unpooled.buffer(256);
+        if (items == null) {
+            items = new String[0];
+        }
+        ByteBuf buf = Unpooled.buffer(1 + 4 + 4 + items.length * 8);
         buf.writeByte(INVENTORY_UPDATE);
         buf.writeInt(entityId);
         buf.writeInt(items.length);
         for (String item : items) {
-            byte[] itemBytes = item.getBytes(StandardCharsets.UTF_8);
-            buf.writeInt(itemBytes.length);
-            buf.writeBytes(itemBytes);
+            byte[] itemBytes = (item != null ? item : "").getBytes(StandardCharsets.UTF_8);
+            int len = Math.min(itemBytes.length, MAX_ITEM_NAME_LENGTH);
+            buf.writeInt(len);
+            buf.writeBytes(itemBytes, 0, len);
         }
         return toBytes(buf);
     }

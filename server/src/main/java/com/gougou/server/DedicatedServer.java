@@ -2,16 +2,25 @@ package com.gougou.server;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import java.io.*;
+import com.gougou.core.net.GameServer;
+import com.gougou.server.db.ServerDatabase;
+
+import java.io.IOException;
 import java.nio.file.*;
+import java.sql.SQLException;
 import java.util.Scanner;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class DedicatedServer {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static GameServer gameServer;
+    private static ServerDatabase database;
 
     public static void main(String[] args) {
         System.out.println("=================================");
         System.out.println("  GouGou Dedicated Server v1.0");
+        System.out.println("  Powered by Netty + H2 Database");
         System.out.println("=================================");
 
         ServerConfig config = loadConfig();
@@ -23,71 +32,106 @@ public class DedicatedServer {
         System.out.println("World Seed: " + config.worldSeed);
         System.out.println();
 
-        // Use a simple UDP server implementation
-        Thread serverThread = new Thread(() -> {
-            try {
-                var socket = new java.net.DatagramSocket(config.port);
-                System.out.println("Server listening on port " + config.port);
-                System.out.println("Type 'stop' to shut down the server.");
+        // Initialize database
+        try {
+            String dataDir = config.dataDirectory;
+            Files.createDirectories(Paths.get(dataDir));
+            database = new ServerDatabase(dataDir);
+            System.out.println("Database initialized at: " + dataDir);
+        } catch (SQLException | IOException e) {
+            System.err.println("Failed to initialize database: " + e.getMessage());
+            System.exit(1);
+        }
 
-                // Discovery responder thread
-                Thread discoveryThread = new Thread(() -> {
-                    try (var ds = new java.net.DatagramSocket(config.port + 1)) {
-                        byte[] buf = new byte[256];
-                        while (!socket.isClosed()) {
-                            var packet = new java.net.DatagramPacket(buf, buf.length);
-                            ds.receive(packet);
-                            String request = new String(packet.getData(), 0, packet.getLength());
-                            if (request.equals("GOUGOU_DISCOVER")) {
-                                String response = "GOUGOU_SERVER:" + config.serverName + "|0/" + config.maxPlayers + "|" + config.port;
-                                byte[] responseData = response.getBytes();
-                                var responsePacket = new java.net.DatagramPacket(responseData, responseData.length,
-                                    packet.getAddress(), packet.getPort());
-                                ds.send(responsePacket);
-                            }
-                        }
-                    } catch (Exception e) {
-                        if (!socket.isClosed()) {
-                            System.err.println("Discovery error: " + e.getMessage());
-                        }
-                    }
-                }, "Discovery");
-                discoveryThread.setDaemon(true);
-                discoveryThread.start();
+        // Start game server
+        gameServer = new GameServer(config.port, config.serverName);
+        gameServer.setMaxPlayers(config.maxPlayers);
 
-                // Main receive loop
-                byte[] buf = new byte[1024];
-                while (!socket.isClosed()) {
-                    var packet = new java.net.DatagramPacket(buf, buf.length);
-                    socket.receive(packet);
-                    // Handle packet (simplified for dedicated server)
-                    System.out.println("Received packet from " + packet.getAddress() + ":" + packet.getPort());
-                }
-            } catch (Exception e) {
-                System.err.println("Server error: " + e.getMessage());
+        try {
+            gameServer.start(config.worldSeed, config.worldSize, config.worldSize);
+        } catch (IOException e) {
+            System.err.println("Failed to start server: " + e.getMessage());
+            database.close();
+            System.exit(1);
+        }
+
+        // Periodic player data save (every 60 seconds)
+        Timer saveTimer = new Timer("PlayerSave", true);
+        saveTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                saveAllPlayers();
             }
-        }, "Server");
-        serverThread.setDaemon(true);
-        serverThread.start();
+        }, 60000, 60000);
 
-        // Console input for commands
+        System.out.println("Type 'help' for available commands.");
+
+        // Console input
         Scanner scanner = new Scanner(System.in);
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine().trim();
+            handleCommand(line);
             if (line.equalsIgnoreCase("stop") || line.equalsIgnoreCase("quit")) {
-                System.out.println("Shutting down server...");
                 break;
-            } else if (line.equalsIgnoreCase("status")) {
-                System.out.println("Server is running on port " + config.port);
-            } else if (line.equalsIgnoreCase("help")) {
-                System.out.println("Commands: stop, status, help");
-            } else if (!line.isEmpty()) {
-                System.out.println("Unknown command. Type 'help' for available commands.");
             }
         }
         scanner.close();
+
+        // Shutdown
+        saveAllPlayers();
+        saveTimer.cancel();
+        gameServer.stop();
+        database.close();
         System.out.println("Server stopped.");
         System.exit(0);
+    }
+
+    private static void handleCommand(String command) {
+        switch (command.toLowerCase()) {
+            case "stop", "quit" -> System.out.println("Shutting down server...");
+            case "status" -> {
+                if (gameServer == null) { System.out.println("Server not initialized."); break; }
+                System.out.println("Server: " + (gameServer.isRunning() ? "RUNNING" : "STOPPED"));
+                System.out.println("Players: " + gameServer.getPlayerCount() + "/" + gameServer.getMaxPlayers());
+            }
+            case "players" -> {
+                if (gameServer == null) { System.out.println("Server not initialized."); break; }
+                System.out.println("Online players:");
+                for (var player : gameServer.getPlayers()) {
+                    System.out.printf("  %s (ID:%d) at (%.1f, %.1f) HP:%d/%d%n",
+                        player.username, player.entityId, player.x, player.y, player.health, player.maxHealth);
+                }
+            }
+            case "save" -> {
+                saveAllPlayers();
+                System.out.println("All player data saved.");
+            }
+            case "help" -> {
+                System.out.println("Commands:");
+                System.out.println("  stop/quit  - Shut down the server");
+                System.out.println("  status     - Show server status");
+                System.out.println("  players    - List online players");
+                System.out.println("  save       - Save all player data");
+                System.out.println("  help       - Show this help");
+            }
+            default -> {
+                if (!command.isEmpty()) {
+                    System.out.println("Unknown command. Type 'help' for available commands.");
+                }
+            }
+        }
+    }
+
+    private static void saveAllPlayers() {
+        if (database == null || gameServer == null) return;
+        for (var player : gameServer.getPlayers()) {
+            database.savePlayer(
+                player.username, player.characterClass, player.skinColor,
+                player.level, player.experience,
+                player.health, player.maxHealth, player.mana, player.maxMana,
+                player.inventory, player.x, player.y
+            );
+        }
     }
 
     private static ServerConfig loadConfig() {
@@ -101,7 +145,6 @@ public class DedicatedServer {
                 System.err.println("Failed to load config: " + e.getMessage());
             }
         }
-        // Create default config
         ServerConfig config = new ServerConfig();
         try {
             Files.writeString(configPath, GSON.toJson(config));
@@ -119,5 +162,6 @@ public class DedicatedServer {
         int worldSize = 256;
         long worldSeed = 12345;
         String motd = "Welcome to GouGou!";
+        String dataDirectory = "server-data";
     }
 }

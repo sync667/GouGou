@@ -1,42 +1,68 @@
 package com.gougou.core.net;
 
 import com.gougou.core.world.World;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
+
 import java.io.IOException;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class GameServer {
-    private DatagramSocket socket;
+    private EventLoopGroup bossGroup;
+    private EventLoopGroup workerGroup;
+    private Channel serverChannel;
     private DatagramSocket discoverySocket;
     private int port;
     private String serverName;
-    private boolean running;
+    private volatile boolean running;
     private World world;
-    private final Map<String, ClientInfo> clients = new ConcurrentHashMap<>();
+    private final Map<Channel, ServerPlayerData> players = new ConcurrentHashMap<>();
     private int nextEntityId = 1;
     private int maxPlayers = 10;
+    private Timer tickTimer;
 
-    private static class ClientInfo {
-        InetAddress address;
-        int port;
-        int entityId;
-        String username;
-        float x, y;
-        int direction;
-        long lastActivity;
+    public static class ServerPlayerData {
+        public final Channel channel;
+        public final int entityId;
+        public String username;
+        public int characterClass;
+        public int skinColor;
+        public float x, y;
+        public int direction;
+        public int health, maxHealth;
+        public int mana, maxMana;
+        public int level;
+        public int experience;
+        public boolean swimming;
+        public boolean moveUp, moveDown, moveLeft, moveRight;
+        public final List<String> inventory = new ArrayList<>();
+        public long lastActivity;
 
-        ClientInfo(InetAddress addr, int port, int entityId, String username) {
-            this.address = addr;
-            this.port = port;
+        public ServerPlayerData(Channel channel, int entityId, String username) {
+            this.channel = channel;
             this.entityId = entityId;
             this.username = username;
+            this.health = 100;
+            this.maxHealth = 100;
+            this.mana = 50;
+            this.maxMana = 50;
+            this.level = 1;
+            this.experience = 0;
             this.lastActivity = System.currentTimeMillis();
+            this.inventory.add("Sword");
+            this.inventory.add("Shield");
+            this.inventory.add("Potion");
         }
-
-        String getKey() { return address.getHostAddress() + ":" + port; }
     }
 
     public GameServer(int port, String serverName) {
@@ -46,32 +72,100 @@ public class GameServer {
 
     public void start(long worldSeed, int worldWidth, int worldHeight) throws IOException {
         world = new World(worldWidth, worldHeight, worldSeed);
-        socket = new DatagramSocket(port);
         running = true;
 
-        // Game receive thread
-        Thread receiveThread = new Thread(this::receiveLoop, "GouGou-Server-Receive");
-        receiveThread.setDaemon(true);
-        receiveThread.start();
+        bossGroup = new NioEventLoopGroup(1);
+        workerGroup = new NioEventLoopGroup();
 
-        // LAN discovery responder
-        Thread discoveryThread = new Thread(this::discoveryLoop, "GouGou-Server-Discovery");
-        discoveryThread.setDaemon(true);
-        discoveryThread.start();
+        try {
+            ServerBootstrap bootstrap = new ServerBootstrap();
+            bootstrap.group(bossGroup, workerGroup)
+                .channel(NioServerSocketChannel.class)
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                .childHandler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    protected void initChannel(SocketChannel ch) {
+                        ch.pipeline().addLast(
+                            new LengthFieldBasedFrameDecoder(Protocol.MAX_PACKET_SIZE, 0, 4, 0, 4),
+                            new LengthFieldPrepender(4),
+                            new ServerHandler()
+                        );
+                    }
+                });
 
-        System.out.println("Server started on port " + port);
+            serverChannel = bootstrap.bind(port).sync().channel();
+            System.out.println("Game server started on port " + port);
+
+            // Start LAN discovery responder
+            Thread discoveryThread = new Thread(this::discoveryLoop, "GouGou-Server-Discovery");
+            discoveryThread.setDaemon(true);
+            discoveryThread.start();
+
+            // Start game tick (20 ticks/sec)
+            tickTimer = new Timer("GouGou-Server-Tick", true);
+            tickTimer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    if (running) tick();
+                }
+            }, 50, 50);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Server start interrupted", e);
+        }
     }
 
-    private void receiveLoop() {
-        byte[] buf = new byte[Protocol.MAX_PACKET_SIZE];
-        while (running) {
-            try {
-                DatagramPacket packet = new DatagramPacket(buf, buf.length);
-                socket.receive(packet);
-                handlePacket(packet);
-            } catch (IOException e) {
-                if (running) System.err.println("Server receive error: " + e.getMessage());
+    private void tick() {
+        float delta = 0.05f; // 50ms per tick
+        float speed = 4.0f;
+
+        for (ServerPlayerData player : players.values()) {
+            float dx = 0, dy = 0;
+            if (player.moveUp) { dy += speed * delta; player.direction = 1; }
+            if (player.moveDown) { dy -= speed * delta; player.direction = 0; }
+            if (player.moveLeft) { dx -= speed * delta; player.direction = 2; }
+            if (player.moveRight) { dx += speed * delta; player.direction = 3; }
+
+            if (dx != 0 || dy != 0) {
+                float newX = player.x + dx;
+                float newY = player.y + dy;
+
+                // Swimming speed reduction
+                if (player.swimming) {
+                    newX = player.x + dx * 0.5f;
+                    newY = player.y + dy * 0.5f;
+                }
+
+                // Server-side collision detection
+                if (world.isWalkable(Math.round(newX), Math.round(newY)) ||
+                    world.isLiquid(Math.round(newX), Math.round(newY))) {
+                    player.x = newX;
+                    player.y = newY;
+                } else {
+                    // Wall sliding
+                    if (world.isWalkable(Math.round(newX), Math.round(player.y)) ||
+                        world.isLiquid(Math.round(newX), Math.round(player.y))) {
+                        player.x = newX;
+                    } else if (world.isWalkable(Math.round(player.x), Math.round(newY)) ||
+                               world.isLiquid(Math.round(player.x), Math.round(newY))) {
+                        player.y = newY;
+                    }
+                }
+
+                player.swimming = world.isLiquid(Math.round(player.x), Math.round(player.y));
+
+                // Broadcast position to other players
+                byte[] movePacket = Protocol.createMove(player.entityId, player.x, player.y, player.direction);
+                broadcastExcept(player.channel, movePacket);
             }
+
+            // Send authoritative state to the player
+            sendTo(player.channel, Protocol.createPlayerState(
+                player.entityId, player.health, player.maxHealth,
+                player.mana, player.maxMana, player.level,
+                player.x, player.y, player.direction, player.swimming
+            ));
         }
     }
 
@@ -85,7 +179,7 @@ public class GameServer {
                     discoverySocket.receive(packet);
                     String request = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8);
                     if (request.equals("GOUGOU_DISCOVER")) {
-                        String response = "GOUGOU_SERVER:" + serverName + "|" + clients.size() + "/" + maxPlayers + "|" + port;
+                        String response = "GOUGOU_SERVER:" + serverName + "|" + players.size() + "/" + maxPlayers + "|" + port;
                         byte[] responseData = response.getBytes(StandardCharsets.UTF_8);
                         DatagramPacket responsePacket = new DatagramPacket(responseData, responseData.length,
                             packet.getAddress(), packet.getPort());
@@ -100,131 +194,161 @@ public class GameServer {
         }
     }
 
-    private void handlePacket(DatagramPacket packet) {
-        ByteBuffer bb = ByteBuffer.wrap(packet.getData(), 0, packet.getLength());
-        byte type = bb.get();
-        String clientKey = packet.getAddress().getHostAddress() + ":" + packet.getPort();
+    private class ServerHandler extends ChannelInboundHandlerAdapter {
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            ByteBuf in = (ByteBuf) msg;
+            try {
+                if (in.readableBytes() < 1) return;
+                byte type = in.readByte();
+                Channel ch = ctx.channel();
 
-        switch (type) {
-            case Protocol.HANDSHAKE -> {
-                int version = bb.getInt();
-                boolean accepted = version == Protocol.VERSION;
-                String msg = accepted ? "Welcome to " + serverName : "Version mismatch";
-                sendTo(packet.getAddress(), packet.getPort(), Protocol.createHandshakeAck(accepted, msg));
-            }
-            case Protocol.LOGIN -> {
-                if (clients.size() >= maxPlayers) {
-                    sendTo(packet.getAddress(), packet.getPort(),
-                        Protocol.createHandshakeAck(false, "Server full"));
-                    return;
-                }
+                switch (type) {
+                    case Protocol.HANDSHAKE -> {
+                        int version = in.readInt();
+                        boolean accepted = version == Protocol.VERSION;
+                        String message = accepted ? "Welcome to " + serverName : "Version mismatch (expected v" + Protocol.VERSION + ")";
+                        sendTo(ch, Protocol.createHandshakeAck(accepted, message));
+                        if (!accepted) {
+                            ch.close();
+                        }
+                    }
+                    case Protocol.LOGIN -> {
+                        if (players.size() >= maxPlayers) {
+                            sendTo(ch, Protocol.createHandshakeAck(false, "Server full"));
+                            ch.close();
+                            return;
+                        }
 
-                int nameLen = Protocol.validateReadLength(bb.getInt(), bb.remaining(), Protocol.MAX_USERNAME_LENGTH);
-                if (nameLen < 0) return;
-                byte[] nameBytes = new byte[nameLen];
-                bb.get(nameBytes);
-                String username = new String(nameBytes, StandardCharsets.UTF_8);
-                int charClass = bb.getInt();
-                int skinColor = bb.getInt();
+                        int nameLen = Protocol.validateReadLength(in.readInt(), in.readableBytes(), Protocol.MAX_USERNAME_LENGTH);
+                        if (nameLen < 0) return;
+                        byte[] nameBytes = new byte[nameLen];
+                        in.readBytes(nameBytes);
+                        String username = new String(nameBytes, StandardCharsets.UTF_8);
+                        int charClass = in.readInt();
+                        int skinColor = in.readInt();
 
-                int eid = nextEntityId++;
-                ClientInfo client = new ClientInfo(packet.getAddress(), packet.getPort(), eid, username);
-                client.x = world.getSpawnX();
-                client.y = world.getSpawnY();
-                clients.put(clientKey, client);
+                        int eid = nextEntityId++;
+                        ServerPlayerData player = new ServerPlayerData(ch, eid, username);
+                        player.characterClass = charClass;
+                        player.skinColor = skinColor;
+                        player.x = world.getSpawnX();
+                        player.y = world.getSpawnY();
+                        players.put(ch, player);
 
-                // Send login ack with spawn position and world seed
-                sendTo(packet.getAddress(), packet.getPort(),
-                    Protocol.createLoginAck(eid, client.x, client.y, world.getSeed()));
+                        // Send login ack
+                        sendTo(ch, Protocol.createLoginAck(eid, player.x, player.y, world.getSeed()));
 
-                // Notify existing clients about new player
-                byte[] spawnPacket = Protocol.createSpawn(eid, username, client.x, client.y, 0);
-                broadcastExcept(clientKey, spawnPacket);
+                        // Send existing players to the new player
+                        for (ServerPlayerData existing : players.values()) {
+                            if (existing.channel != ch) {
+                                sendTo(ch, Protocol.createSpawn(existing.entityId, existing.username, existing.x, existing.y, 0));
+                            }
+                        }
 
-                // Send existing entities to new client
-                for (ClientInfo existing : clients.values()) {
-                    if (!existing.getKey().equals(clientKey)) {
-                        sendTo(packet.getAddress(), packet.getPort(),
-                            Protocol.createSpawn(existing.entityId, existing.username, existing.x, existing.y, 0));
+                        // Notify existing players about new player
+                        byte[] spawnPacket = Protocol.createSpawn(eid, username, player.x, player.y, 0);
+                        broadcastExcept(ch, spawnPacket);
+
+                        // Send initial inventory
+                        sendTo(ch, Protocol.createInventoryUpdate(eid, player.inventory.toArray(new String[0])));
+
+                        System.out.println(username + " joined (ID: " + eid + ")");
+                    }
+                    case Protocol.MOVE_INPUT -> {
+                        ServerPlayerData player = players.get(ch);
+                        if (player != null) {
+                            player.lastActivity = System.currentTimeMillis();
+                            int flags = in.readByte();
+                            player.moveUp = (flags & 1) != 0;
+                            player.moveDown = (flags & 2) != 0;
+                            player.moveLeft = (flags & 4) != 0;
+                            player.moveRight = (flags & 8) != 0;
+                        }
+                    }
+                    case Protocol.CHAT -> {
+                        ServerPlayerData player = players.get(ch);
+                        if (player != null) {
+                            in.readInt(); // skip entityId from client (use server's)
+                            int msgLen = Protocol.validateReadLength(in.readInt(), in.readableBytes(), Protocol.MAX_CHAT_LENGTH);
+                            if (msgLen < 0) return;
+                            byte[] chatBytes = new byte[msgLen];
+                            in.readBytes(chatBytes);
+                            String chatMsg = new String(chatBytes, StandardCharsets.UTF_8);
+                            // Broadcast with server-verified entity ID
+                            broadcast(Protocol.createChat(player.entityId, chatMsg));
+                            System.out.println("[Chat] " + player.username + ": " + chatMsg);
+                        }
+                    }
+                    case Protocol.PING -> {
+                        long timestamp = in.readLong();
+                        sendTo(ch, Protocol.createPong(timestamp));
+                    }
+                    case Protocol.DISCONNECT -> {
+                        handleDisconnect(ch);
                     }
                 }
+            } finally {
+                in.release();
+            }
+        }
 
-                System.out.println(username + " joined the server (ID: " + eid + ")");
-            }
-            case Protocol.DISCONNECT -> {
-                ClientInfo client = clients.remove(clientKey);
-                if (client != null) {
-                    broadcastExcept(clientKey, Protocol.createDisconnect(client.entityId));
-                    System.out.println(client.username + " left the server");
-                }
-            }
-            case Protocol.MOVE -> {
-                ClientInfo client = clients.get(clientKey);
-                if (client != null) {
-                    client.lastActivity = System.currentTimeMillis();
-                    int eid = bb.getInt();
-                    client.x = bb.getFloat();
-                    client.y = bb.getFloat();
-                    client.direction = bb.getInt();
-                    broadcastExcept(clientKey, Protocol.createMove(eid, client.x, client.y, client.direction));
-                }
-            }
-            case Protocol.CHAT -> {
-                ClientInfo client = clients.get(clientKey);
-                if (client != null) {
-                    int eid = bb.getInt();
-                    int msgLen = Protocol.validateReadLength(bb.getInt(), bb.remaining(), Protocol.MAX_CHAT_LENGTH);
-                    if (msgLen < 0) return;
-                    byte[] msgBytes = new byte[msgLen];
-                    bb.get(msgBytes);
-                    String msg = new String(msgBytes, StandardCharsets.UTF_8);
-                    // Broadcast to all including sender
-                    broadcast(Protocol.createChat(eid, msg));
-                    System.out.println("[Chat] " + client.username + ": " + msg);
-                }
-            }
-            case Protocol.PING -> {
-                long timestamp = bb.getLong();
-                sendTo(packet.getAddress(), packet.getPort(), Protocol.createPong(timestamp));
-            }
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) {
+            handleDisconnect(ctx.channel());
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+            System.err.println("Server handler error: " + cause.getMessage());
+            ctx.close();
         }
     }
 
-    private void sendTo(InetAddress address, int port, byte[] data) {
-        try {
-            DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
-            socket.send(packet);
-        } catch (IOException e) {
-            System.err.println("Failed to send to " + address + ":" + port);
+    private void handleDisconnect(Channel ch) {
+        ServerPlayerData player = players.remove(ch);
+        if (player != null) {
+            broadcastExcept(ch, Protocol.createDespawn(player.entityId));
+            System.out.println(player.username + " left the server");
+        }
+    }
+
+    private void sendTo(Channel channel, byte[] data) {
+        if (channel.isActive()) {
+            channel.writeAndFlush(Unpooled.wrappedBuffer(data));
         }
     }
 
     private void broadcast(byte[] data) {
-        for (ClientInfo client : clients.values()) {
-            sendTo(client.address, client.port, data);
+        for (ServerPlayerData player : players.values()) {
+            sendTo(player.channel, data);
         }
     }
 
-    private void broadcastExcept(String excludeKey, byte[] data) {
-        for (Map.Entry<String, ClientInfo> entry : clients.entrySet()) {
-            if (!entry.getKey().equals(excludeKey)) {
-                sendTo(entry.getValue().address, entry.getValue().port, data);
+    private void broadcastExcept(Channel exclude, byte[] data) {
+        for (ServerPlayerData player : players.values()) {
+            if (player.channel != exclude) {
+                sendTo(player.channel, data);
             }
         }
     }
 
     public void stop() {
         running = false;
+        if (tickTimer != null) tickTimer.cancel();
         broadcast(Protocol.createDisconnect(0));
-        if (socket != null) socket.close();
+        if (serverChannel != null) serverChannel.close();
         if (discoverySocket != null) discoverySocket.close();
+        if (bossGroup != null) bossGroup.shutdownGracefully();
+        if (workerGroup != null) workerGroup.shutdownGracefully();
         System.out.println("Server stopped");
     }
 
     public boolean isRunning() { return running; }
-    public int getPlayerCount() { return clients.size(); }
+    public int getPlayerCount() { return players.size(); }
     public int getMaxPlayers() { return maxPlayers; }
     public void setMaxPlayers(int max) { this.maxPlayers = max; }
     public World getWorld() { return world; }
     public int getPort() { return port; }
+    public Collection<ServerPlayerData> getPlayers() { return players.values(); }
 }

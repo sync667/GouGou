@@ -215,6 +215,36 @@ public class GameScreen implements Screen {
             public void onPong(long latency) {
                 hud.setLatency(latency);
             }
+
+            @Override
+            public void onPlayerState(int entityId, int health, int maxHealth, int mana, int maxMana,
+                                       int level, float x, float y, int direction, boolean swimming) {
+                if (localPlayer != null && localPlayer.getEntityId() == entityId) {
+                    localPlayer.setHealth(health);
+                    localPlayer.setX(x);
+                    localPlayer.setY(y);
+                    localPlayer.setDirection(direction);
+                    localPlayer.setMana(mana);
+                } else {
+                    Entity e = entityManager.getEntity(entityId);
+                    if (e != null) {
+                        e.setHealth(health);
+                        e.setX(x);
+                        e.setY(y);
+                        e.setDirection(direction);
+                    }
+                }
+            }
+
+            @Override
+            public void onInventoryUpdate(int entityId, String[] items) {
+                if (localPlayer != null && localPlayer.getEntityId() == entityId) {
+                    localPlayer.getInventory().clear();
+                    for (String item : items) {
+                        localPlayer.addItem(item);
+                    }
+                }
+            }
         });
 
         try {

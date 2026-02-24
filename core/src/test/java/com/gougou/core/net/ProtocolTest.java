@@ -126,4 +126,72 @@ class ProtocolTest {
         assertEquals(-1, Protocol.validateReadLength(100, 200, 64));
         assertEquals(0, Protocol.validateReadLength(0, 100, 64));
     }
+
+    @Test
+    void testCreateMoveInput() {
+        byte[] data = Protocol.createMoveInput(true, false, true, false);
+        ByteBuffer bb = ByteBuffer.wrap(data);
+        assertEquals(Protocol.MOVE_INPUT, bb.get());
+        int flags = bb.get();
+        assertTrue((flags & 1) != 0, "up should be set");
+        assertFalse((flags & 2) != 0, "down should not be set");
+        assertTrue((flags & 4) != 0, "left should be set");
+        assertFalse((flags & 8) != 0, "right should not be set");
+    }
+
+    @Test
+    void testCreatePlayerState() {
+        byte[] data = Protocol.createPlayerState(5, 80, 100, 30, 50, 3,
+            10.5f, 20.3f, 2, true);
+        ByteBuffer bb = ByteBuffer.wrap(data);
+        assertEquals(Protocol.PLAYER_STATE, bb.get());
+        assertEquals(5, bb.getInt());
+        assertEquals(80, bb.getInt());  // health
+        assertEquals(100, bb.getInt()); // maxHealth
+        assertEquals(30, bb.getInt());  // mana
+        assertEquals(50, bb.getInt());  // maxMana
+        assertEquals(3, bb.getInt());   // level
+        assertEquals(10.5f, bb.getFloat(), 0.01f);
+        assertEquals(20.3f, bb.getFloat(), 0.01f);
+        assertEquals(2, bb.getInt());   // direction
+        assertEquals(1, bb.get());      // swimming = true
+    }
+
+    @Test
+    void testCreateInventoryUpdate() {
+        String[] items = {"Sword", "Shield", "Potion"};
+        byte[] data = Protocol.createInventoryUpdate(7, items);
+        ByteBuffer bb = ByteBuffer.wrap(data);
+        assertEquals(Protocol.INVENTORY_UPDATE, bb.get());
+        assertEquals(7, bb.getInt());
+        assertEquals(3, bb.getInt()); // item count
+        for (String expected : items) {
+            int len = bb.getInt();
+            byte[] itemBytes = new byte[len];
+            bb.get(itemBytes);
+            assertEquals(expected, new String(itemBytes, StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    void testCreateInventoryUpdateEmpty() {
+        byte[] data = Protocol.createInventoryUpdate(1, new String[0]);
+        ByteBuffer bb = ByteBuffer.wrap(data);
+        assertEquals(Protocol.INVENTORY_UPDATE, bb.get());
+        assertEquals(1, bb.getInt());
+        assertEquals(0, bb.getInt()); // empty
+    }
+
+    @Test
+    void testCreateDespawn() {
+        byte[] data = Protocol.createDespawn(42);
+        ByteBuffer bb = ByteBuffer.wrap(data);
+        assertEquals(Protocol.DESPAWN, bb.get());
+        assertEquals(42, bb.getInt());
+    }
+
+    @Test
+    void testVersionBumped() {
+        assertEquals(4, Protocol.VERSION);
+    }
 }
